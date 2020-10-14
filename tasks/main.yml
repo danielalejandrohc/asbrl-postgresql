@@ -1,22 +1,22 @@
 ---
 - name: Create PostgreSQL directory
   file:
-    path: /home/{{default_user}}/postgres/
+    path: /home/{{default_user}}/{{ DOCKER_NAME }}/
     state: directory  
 
 - name: PostgreSQL Data Volume
   docker_volume:
-    name: postgres_data
-    state: present
+    name: "{{ DOCKER_NAME }}_data"
+    state: "{{ VOLUME_STATE }}"
 
 - name: PostgreSQL config file
   template:
     src: postgresql.conf.j2
-    dest: /home/{{default_user}}/postgres/postgresql.conf    
+    dest: /home/{{default_user}}/{{ DOCKER_NAME }}/postgresql.conf    
 
 - name: PostgreSQL
   docker_container:
-    name: "postgres"
+    name: "{{ DOCKER_NAME }}"
     image: "postgres:{{ BUILD }}"
     command: "-c 'config_file=/etc/postgresql/postgresql.conf'"
     pull: "true"
@@ -24,10 +24,13 @@
     env:
       POSTGRES_USER: "{{ ROOT_USERNAME }}"
       POSTGRES_PASSWORD: "{{ ROOT_PASSWORD }}"
-    state: "started"
+    cpu_period: "{{ DOCKER_CPU_PERIOD }}"
+    cpu_quota: "{{ DOCKER_CPU_QUOTA }}"
+    memory: "{{ DOCKER_MEMORY }}"
+    state: "{{ CONTAINER_STATE }}"
     restart_policy: "unless-stopped"
     published_ports:
       - "0.0.0.0:{{ PORT }}:{{ PORT }}"
     volumes:
-      - /home/{{default_user}}/postgres/postgresql.conf:/etc/postgresql/postgresql.conf
-      - postgres_data:/var/lib/postgresql/data
+      - /home/{{default_user}}/{{ DOCKER_NAME }}/postgresql.conf:/etc/postgresql/postgresql.conf
+      - '{{ DOCKER_NAME }}_data:/var/lib/postgresql/data'

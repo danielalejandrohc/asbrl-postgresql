@@ -11,3 +11,9 @@ WAL_BUFFERS: '4MB' # 3% of shared_buffers
 EFFECTIVE_CACHE_SIZE: '512MB' # 50-75% of Total RAM.
 WORK_MEM: '4MB' # 25% of Total RAM / max_connections
 MAINTENANCE_WORK_MEM: '64MB' # 5% of Total RAM
+DOCKER_NAME: 'postgres'
+DOCKER_CPU_PERIOD: 0
+DOCKER_CPU_QUOTA: 0
+DOCKER_MEMORY: 0
+CONTAINER_STATE: 'started'
+VOLUME_STATE: 'present'
