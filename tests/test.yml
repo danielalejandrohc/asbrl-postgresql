@@ -1,5 +1,25 @@
 ---
-- hosts: localhost
-  remote_user: root
-  roles:
-    - asbrl-postgresql/
+- name: Deploy
+  hosts: localhost
+  order: sorted
+  become: true
+
+  pre_tasks:
+
+  - name: copy role locally (DEBUG)
+    copy:
+      src: ../
+      dest: ./roles/asbrl-postgresql
+  
+  tasks:
+
+  - name: Deploy PostgreSQL
+    include_role:
+      name: asbrl-postgresql
+    vars:
+      ROOT_USERNAME: "posgresql"
+      ROOT_PASSWORD: "Pa$$W0rd"
+      DOCKER_CPU_QUOTA: 100000
+      DOCKER_MEMORY: '1G'
+    tags:
+      - postgres
