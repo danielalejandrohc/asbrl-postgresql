@@ -1,8 +1,9 @@
 ---
 - name: Create PostgreSQL directory
   file:
-    path: /home/{{default_user}}/{{ DOCKER_NAME }}/
-    state: directory  
+    path: /home/{{ default_user }}/{{ DOCKER_NAME }}/
+    state: directory
+    mode: 0644
 
 - name: PostgreSQL Data Volume
   docker_volume:
@@ -12,7 +13,8 @@
 - name: PostgreSQL config file
   template:
     src: postgresql.conf.j2
-    dest: /home/{{default_user}}/{{ DOCKER_NAME }}/postgresql.conf    
+    dest: /home/{{ default_user }}/{{ DOCKER_NAME }}/postgresql.conf
+    mode: 0644
 
 - name: PostgreSQL
   docker_container:
@@ -32,5 +34,5 @@
     published_ports:
       - "0.0.0.0:{{ PORT }}:{{ PORT }}"
     volumes:
-      - /home/{{default_user}}/{{ DOCKER_NAME }}/postgresql.conf:/etc/postgresql/postgresql.conf
+      - /home/{{ default_user }}/{{ DOCKER_NAME }}/postgresql.conf:/etc/postgresql/postgresql.conf
       - '{{ DOCKER_NAME }}_data:/var/lib/postgresql/data'
