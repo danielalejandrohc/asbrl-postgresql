@@ -3,18 +3,24 @@
   file:
     path: /home/{{ default_user }}/{{ DOCKER_NAME }}/
     state: directory
-    mode: 0644
+    mode: 0755
+  tags:
+  - asbrl-postgresql
 
 - name: PostgreSQL Data Volume
   docker_volume:
     name: "{{ DOCKER_NAME }}_data"
     state: "{{ VOLUME_STATE }}"
+  tags:
+  - asbrl-postgresql
 
 - name: PostgreSQL config file
   template:
     src: postgresql.conf.j2
     dest: /home/{{ default_user }}/{{ DOCKER_NAME }}/postgresql.conf
     mode: 0644
+  tags:
+  - asbrl-postgresql
 
 - name: PostgreSQL
   docker_container:
@@ -36,3 +42,5 @@
     volumes:
       - /home/{{ default_user }}/{{ DOCKER_NAME }}/postgresql.conf:/etc/postgresql/postgresql.conf
       - '{{ DOCKER_NAME }}_data:/var/lib/postgresql/data'
+  tags:
+  - asbrl-postgresql

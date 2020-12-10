@@ -47,7 +47,7 @@ Example Playbook
         DOCKER_CPU_QUOTA: 100000
         DOCKER_MEMORY: 1G
       tags:
-        - postgres
+      - asbrl-postgresql
 
 License
 -------
