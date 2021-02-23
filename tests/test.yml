@@ -6,6 +6,11 @@
 
   pre_tasks:
 
+  - name: Remove ./roles/ folder
+    file:
+      path: ./roles/
+      state: absent
+
   - name: copy role locally (DEBUG)
     copy:
       src: ../
@@ -17,7 +22,7 @@
     include_role:
       name: asbrl-postgresql
     vars:
-      default_user: fchantada
+      default_user: ubuntu
       DOCKER_NAME: pg1
       PORT: 15432
       ROOT_USERNAME: "postgres"
@@ -30,7 +35,7 @@
     include_role:
       name: asbrl-postgresql
     vars:
-      default_user: fchantada
+      default_user: ubuntu
       DOCKER_NAME: pg2
       PORT: 25432
       ROOT_USERNAME: "postgres"

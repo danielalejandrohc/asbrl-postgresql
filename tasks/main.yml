@@ -3,7 +3,7 @@
   file:
     path: /home/{{ default_user }}/{{ DOCKER_NAME }}/
     state: directory
-    mode: 0755
+    mode: '0755'
   tags:
   - asbrl-postgresql
 
@@ -18,7 +18,7 @@
   template:
     src: postgresql.conf.j2
     dest: /home/{{ default_user }}/{{ DOCKER_NAME }}/postgresql.conf
-    mode: 0644
+    mode: '0644'
   tags:
   - asbrl-postgresql
 
@@ -26,7 +26,7 @@
   template:
     src: pg_hba.conf.j2
     dest: /home/{{ default_user }}/{{ DOCKER_NAME }}/pg_hba.conf
-    mode: 0644
+    mode: '0644'
   tags:
   - asbrl-postgresql
 
@@ -49,7 +49,7 @@
       - "0.0.0.0:{{ PORT }}:{{ PORT }}"
     volumes:
       - /home/{{ default_user }}/{{ DOCKER_NAME }}/postgresql.conf:/etc/postgresql/postgresql.conf
-      - /home/{{ default_user }}/{{ DOCKER_NAME }}/pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
+      - /home/{{ default_user }}/{{ DOCKER_NAME }}/pg_hba.conf:/etc/postgresql/pg_hba.conf
       - '{{ DOCKER_NAME }}_data:/var/lib/postgresql/data'
   tags:
   - asbrl-postgresql
@@ -89,22 +89,10 @@
     login_user: "{{ ROOT_USERNAME }}"
     login_password: "{{ ROOT_PASSWORD }}"
     query: "SELECT * FROM pg_create_physical_replication_slot('{{ REPLICA_SLOT }}');"
+  ignore_errors: yes
   when: REPLICA_ROLE == 'MASTER'
   tags:
   - asbrl-postgresql
-
-# - name: Grant user replication
-#   postgresql_pg_hba:
-#     dest: /home/{{ default_user }}/{{ DOCKER_NAME }}/pg_hba.conf
-#     contype: host
-#     users: "{{ REPLICA_USERNAME }}"
-#     source: "{{ REPLICA_SOURCE }}"
-#     databases: replication
-#     method: "{{ REPLICA_METHOD }}"
-#   when: REPLICA_ROLE == 'MASTER'
-#   delegate_to: "{{ inventory_hostname }}"
-#   tags:
-#   - asbrl-postgresql
 
 - name: Install packages
   apt:
@@ -135,7 +123,7 @@
       --host={{ REPLICA_MASTER_HOST }} \
       --port={{ REPLICA_MASTER_PORT }} \
       --username={{ REPLICA_USERNAME }} \
-      --pgdata='/var/lib/docker/volumes/{{ DOCKER_NAME }}/_data' \
+      --pgdata='/var/lib/docker/volumes/{{ DOCKER_NAME }}_data/backup' \
       --progress \
       --slot {{ REPLICA_SLOT }} \
       --format=p \
@@ -145,10 +133,26 @@
   tags:
   - asbrl-postgresql
 
+- name: Move Backup to final destination
+  shell: |
+      mv /var/lib/docker/volumes/{{ DOCKER_NAME }}_data/_data /var/lib/docker/volumes/{{ DOCKER_NAME }}_data/_data_bkp
+      mv /var/lib/docker/volumes/{{ DOCKER_NAME }}_data/backup /var/lib/docker/volumes/{{ DOCKER_NAME }}_data/_data
+  when: REPLICA_ROLE == 'SLAVE'
+  tags:
+  - asbrl-postgresql
+
 - name: Start Container
   docker_container:
     name: "{{ DOCKER_NAME }}"
     state: "started"
+  when: REPLICA_ROLE == 'SLAVE'
+  tags:
+  - asbrl-postgresql
+
+- name: Remove old folder Volume
+  file:
+    path: /var/lib/docker/volumes/{{ DOCKER_NAME }}_data/_data_bkp
+    state: absent
   when: REPLICA_ROLE == 'SLAVE'
   tags:
   - asbrl-postgresql
