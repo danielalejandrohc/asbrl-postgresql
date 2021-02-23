@@ -1,4 +1,4 @@
-image: python:3-slim
+image: registry.gitlab.com/gianet/moegui/devops/linux-containers/ansible:2.9
 
 before_script:
   - pip3 install ansible-lint
