@@ -62,7 +62,7 @@
   vars:
     packages:
     - psycopg2-binary
-  loop: 
+  loop:
     - "{{ packages }}"
 
 - name: Create replicator user in Master
@@ -102,7 +102,7 @@
   vars:
     packages:
     - postgresql-client
-  loop: 
+  loop:
     - "{{ packages }}"
   when: REPLICA_ROLE == 'SLAVE'
   tags:

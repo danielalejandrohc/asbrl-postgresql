@@ -15,7 +15,8 @@
     copy:
       src: ../
       dest: ./roles/asbrl-postgresql
-  
+      mode: '0755'
+
   tasks:
 
   - name: Deploy PostgreSQL 1
