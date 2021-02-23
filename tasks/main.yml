@@ -3,7 +3,7 @@
   file:
     path: /home/{{ default_user }}/{{ DOCKER_NAME }}/
     state: directory
-    mode: 0755
+    mode: '0755'
   tags:
   - asbrl-postgresql
 
@@ -18,7 +18,15 @@
   template:
     src: postgresql.conf.j2
     dest: /home/{{ default_user }}/{{ DOCKER_NAME }}/postgresql.conf
-    mode: 0644
+    mode: '0644'
+  tags:
+  - asbrl-postgresql
+
+- name: PostgreSQL hba file
+  template:
+    src: pg_hba.conf.j2
+    dest: /home/{{ default_user }}/{{ DOCKER_NAME }}/pg_hba.conf
+    mode: '0644'
   tags:
   - asbrl-postgresql
 
@@ -41,6 +49,110 @@
       - "0.0.0.0:{{ PORT }}:{{ PORT }}"
     volumes:
       - /home/{{ default_user }}/{{ DOCKER_NAME }}/postgresql.conf:/etc/postgresql/postgresql.conf
+      - /home/{{ default_user }}/{{ DOCKER_NAME }}/pg_hba.conf:/etc/postgresql/pg_hba.conf
       - '{{ DOCKER_NAME }}_data:/var/lib/postgresql/data'
+  tags:
+  - asbrl-postgresql
+
+- name: Install pip packages
+  pip:
+    name : "{{ item }}"
+    state : "present"
+    executable: pip3
+  vars:
+    packages:
+    - psycopg2-binary
+  loop:
+    - "{{ packages }}"
+
+- name: Create replicator user in Master
+  postgresql_user:
+    login_host: "{{ ansible_host }}"
+    login_user: "{{ ROOT_USERNAME }}"
+    login_password: "{{ ROOT_PASSWORD }}"
+    port: "{{ PORT }}"
+    name: "{{ REPLICA_USERNAME }}"
+    password: "{{ REPLICA_PASSWORD }}"
+    priv: "CONNECT"
+    role_attr_flags: "REPLICATION"
+    db: postgres
+    expires: infinity
+  when: REPLICA_ROLE == 'MASTER'
+  tags:
+  - asbrl-postgresql
+
+- name: Create Replicator slot
+  postgresql_query:
+    db: postgres
+    login_host: "{{ ansible_host }}"
+    port: "{{ PORT }}"
+    login_user: "{{ ROOT_USERNAME }}"
+    login_password: "{{ ROOT_PASSWORD }}"
+    query: "SELECT * FROM pg_create_physical_replication_slot('{{ REPLICA_SLOT }}');"
+  ignore_errors: yes
+  when: REPLICA_ROLE == 'MASTER'
+  tags:
+  - asbrl-postgresql
+
+- name: Install packages
+  apt:
+    name : "{{ item }}"
+    state : "present"
+    update_cache : yes
+  vars:
+    packages:
+    - postgresql-client
+  loop:
+    - "{{ packages }}"
+  when: REPLICA_ROLE == 'SLAVE'
+  tags:
+  - asbrl-postgresql
+
+- name: Stop Container
+  docker_container:
+    name: "{{ DOCKER_NAME }}"
+    state: "stopped"
+  when: REPLICA_ROLE == 'SLAVE'
+  tags:
+  - asbrl-postgresql
+
+- name: Backup from Master
+  shell: |
+      export PGPASSWORD="{{ REPLICA_PASSWORD }}"  && \
+      /usr/bin/pg_basebackup \
+      --host={{ REPLICA_MASTER_HOST }} \
+      --port={{ REPLICA_MASTER_PORT }} \
+      --username={{ REPLICA_USERNAME }} \
+      --pgdata='/var/lib/docker/volumes/{{ DOCKER_NAME }}_data/backup' \
+      --progress \
+      --slot {{ REPLICA_SLOT }} \
+      --format=p \
+      --wal-method=stream \
+      --write-recovery-conf
+  when: REPLICA_ROLE == 'SLAVE'
+  tags:
+  - asbrl-postgresql
+
+- name: Move Backup to final destination
+  shell: |
+      mv /var/lib/docker/volumes/{{ DOCKER_NAME }}_data/_data /var/lib/docker/volumes/{{ DOCKER_NAME }}_data/_data_bkp
+      mv /var/lib/docker/volumes/{{ DOCKER_NAME }}_data/backup /var/lib/docker/volumes/{{ DOCKER_NAME }}_data/_data
+  when: REPLICA_ROLE == 'SLAVE'
+  tags:
+  - asbrl-postgresql
+
+- name: Start Container
+  docker_container:
+    name: "{{ DOCKER_NAME }}"
+    state: "started"
+  when: REPLICA_ROLE == 'SLAVE'
+  tags:
+  - asbrl-postgresql
+
+- name: Remove old folder Volume
+  file:
+    path: /var/lib/docker/volumes/{{ DOCKER_NAME }}_data/_data_bkp
+    state: absent
+  when: REPLICA_ROLE == 'SLAVE'
   tags:
   - asbrl-postgresql
