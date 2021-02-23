@@ -118,7 +118,7 @@
 
 - name: Backup from Master
   shell: |
-      echo {{ REPLICA_PASSWORD }} && \
+      export PGPASSWORD="{{ REPLICA_PASSWORD }}"  && \
       /usr/bin/pg_basebackup \
       --host={{ REPLICA_MASTER_HOST }} \
       --port={{ REPLICA_MASTER_PORT }} \
