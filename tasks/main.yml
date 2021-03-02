@@ -54,20 +54,49 @@
   tags:
   - asbrl-postgresql
 
+- name: Add PostgreSQL apt key.
+  apt_key:
+    url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+    state: present
+  tags:
+  - asbrl-postgresql
+
+- name: Get Ubuntu distribution
+  command: lsb_release -sc
+  register: dist
+  tags:
+  - asbrl-postgresql
+
+- name: Add PostgreSQL repository.
+  apt_repository:
+    repo: "deb http://apt.postgresql.org/pub/repos/apt {{ dist.stdout }}-pgdg main"
+    state: present
+    update_cache: true
+  tags:
+  - asbrl-postgresql
+
+- name: Install packages
+  apt:
+    name:
+    - postgresql-client
+    - python-psycopg2
+    state : "present"
+    update_cache : yes
+  tags:
+  - asbrl-postgresql
+
 - name: Install pip packages
   pip:
-    name : "{{ item }}"
-    state : "present"
-    executable: pip3
-  vars:
-    packages:
+    name: 
     - psycopg2-binary
-  loop:
-    - "{{ packages }}"
+    state: "present"
+    executable: pip3
+  tags:
+  - asbrl-postgresql
 
 - name: Create replicator user in Master
   postgresql_user:
-    login_host: "{{ ansible_host }}"
+    login_host: "172.17.0.1"
     login_user: "{{ ROOT_USERNAME }}"
     login_password: "{{ ROOT_PASSWORD }}"
     port: "{{ PORT }}"
@@ -84,27 +113,13 @@
 - name: Create Replicator slot
   postgresql_query:
     db: postgres
-    login_host: "{{ ansible_host }}"
+    login_host: "172.17.0.1"
     port: "{{ PORT }}"
     login_user: "{{ ROOT_USERNAME }}"
     login_password: "{{ ROOT_PASSWORD }}"
     query: "SELECT * FROM pg_create_physical_replication_slot('{{ REPLICA_SLOT }}');"
   ignore_errors: yes
   when: REPLICA_ROLE == 'MASTER'
-  tags:
-  - asbrl-postgresql
-
-- name: Install packages
-  apt:
-    name : "{{ item }}"
-    state : "present"
-    update_cache : yes
-  vars:
-    packages:
-    - postgresql-client
-  loop:
-    - "{{ packages }}"
-  when: REPLICA_ROLE == 'SLAVE'
   tags:
   - asbrl-postgresql
 
