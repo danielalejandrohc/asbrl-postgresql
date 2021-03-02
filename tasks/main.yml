@@ -64,6 +64,7 @@
 - name: Get Ubuntu distribution
   command: lsb_release -sc
   register: dist
+  when: ansible_os_family == "Debian"
   tags:
   - asbrl-postgresql
 
@@ -87,7 +88,7 @@
 
 - name: Install pip packages
   pip:
-    name: 
+    name:
     - psycopg2-binary
     state: "present"
     executable: pip3
