@@ -1,8 +1,8 @@
-image: python:3-slim
+image: registry.gitlab.com/gianet/moegui/devops/devops/ansible:2.9
 
-before_script:
-  - pip3 install ansible-base ansible-lint==4.*
-  - ansible-lint --version
+# before_script:
+#   - pip3 install ansible-base ansible-lint==4.*
+#   - ansible-lint --version
 
 stages:
   - ansible-lint
